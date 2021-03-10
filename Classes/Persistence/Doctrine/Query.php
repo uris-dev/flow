@@ -478,12 +478,13 @@ class Query implements QueryInterface
      * @param string $propertyName The name of the property to compare against
      * @param mixed $operand The value to compare with
      * @param boolean $caseSensitive Whether the equality test should be done case-sensitive for strings
+     * @param string $joinGroup Allows to make multiple queries on collections targeting more than one entity 
      * @return Comparison|string
      * @api
      */
-    public function equals(string $propertyName, $operand, bool $caseSensitive = true)
+    public function equals(string $propertyName, $operand, bool $caseSensitive = true, $joinGroup = '')
     {
-        $aliasedPropertyName = $this->getPropertyNameWithAlias($propertyName);
+        $aliasedPropertyName = $this->getPropertyNameWithAlias($propertyName, $joinGroup);
         if ($operand === null) {
             return $this->queryBuilder->expr()->isNull($aliasedPropertyName);
         }
@@ -655,9 +656,10 @@ class Query implements QueryInterface
      * This enables us to set conditions on related objects.
      *
      * @param string $propertyPath The path to a sub property, e.g. property.subProperty.foo, or a simple property name
+     * @param string $joinGroup Allows to make multiple queries on collections targeting more than one entity 
      * @return string The last part of the property name prefixed by the used join alias, if joins have been added
      */
-    protected function getPropertyNameWithAlias($propertyPath)
+    protected function getPropertyNameWithAlias($propertyPath, $joinGroup = '')
     {
         $aliases = $this->queryBuilder->getRootAliases();
         $previousJoinAlias = $aliases[0];
@@ -671,11 +673,11 @@ class Query implements QueryInterface
         $conditionPartsCount = count($propertyPathParts);
         for ($i = 0; $i < $conditionPartsCount - 1; $i++) {
             $joinProperty = $previousJoinAlias . '.' . $propertyPathParts[$i];
-            $joinAlias = array_search($joinProperty, (array)$this->joins);
+            $joinAlias = array_search($joinProperty.$joinGroup, (array)$this->joins);
             if ($joinAlias === false) {
                 $joinAlias = $propertyPathParts[$i] . $this->joinAliasCounter++;
                 $this->queryBuilder->leftJoin($joinProperty, $joinAlias);
-                $this->joins[$joinAlias] = $joinProperty;
+                $this->joins[$joinAlias] = $joinProperty.$joinGroup;
             }
             $previousJoinAlias = $joinAlias;
         }
